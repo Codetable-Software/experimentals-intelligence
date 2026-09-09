@@ -1,40 +1,102 @@
 from pathlib import Path
-
+import random
 
 TRAINING_FILE = Path("training.txt")
 
 
-def load_training_data(path: Path):
-    if not path.exists():
-        raise FileNotFoundError(f"File tidak ditemukan: {path}")
+def load_training_data():
+    if not TRAINING_FILE.exists():
+        print("training.txt tidak ditemukan.")
+        return []
 
-    lines = path.read_text(encoding="utf-8").splitlines()
+    lines = TRAINING_FILE.read_text(encoding="utf-8").splitlines()
 
-    conversations = []
-    current_user = None
+    data = []
+    user = None
 
     for line in lines:
         line = line.strip()
 
-        if not line:
-            continue
-
         if line.startswith("User:"):
-            current_user = line[5:].strip()
+            user = line[5:].strip()
 
-        elif line.startswith("AI:") and current_user is not None:
-            assistant = line[3:].strip()
+        elif line.startswith("AI:") and user:
+            ai = line[3:].strip()
 
-            conversations.append({
-                "user": current_user,
-                "assistant": assistant
+            data.append({
+                "user": user,
+                "ai": ai
             })
 
-            current_user = None
+            user = None
 
-    return conversations
+    return data
 
 
+def find_response(question, data):
+    question = question.lower().strip()
+
+    if not question:
+        return "Coba tulis pertanyaan."
+
+    # Exact match
+    for item in data:
+        if item["user"].lower() == question:
+            return item["ai"]
+
+    # Keyword match sederhana
+    words = question.split()
+
+    best = []
+    best_score = 0
+
+    for item in data:
+        text = item["user"].lower()
+
+        score = sum(1 for word in words if word in text)
+
+        if score > best_score:
+            best_score = score
+            best = [item["ai"]]
+        elif score == best_score and score > 0:
+            best.append(item["ai"])
+
+    if best:
+        return random.choice(best)
+
+    return "Maaf, aku belum tahu cara menjawab pertanyaan itu."
+
+
+def main():
+    data = load_training_data()
+
+    print("=" * 50)
+    print("AI CLI")
+    print("=" * 50)
+    print(f"Dataset: {len(data)} percakapan")
+    print("Ketik 'exit' untuk keluar.")
+    print()
+
+    while True:
+        try:
+            question = input("You: ").strip()
+
+            if question.lower() in ["exit", "quit", "bye"]:
+                print("AI: Sampai jumpa! 👋")
+                break
+
+            answer = find_response(question, data)
+
+            print(f"AI: {answer}")
+            print()
+
+        except KeyboardInterrupt:
+            print("\nAI: Sampai jumpa! 👋")
+            break
+
+
+if __name__ == "__main__":
+    main()
 def main():
     try:
         data = load_training_data(TRAINING_FILE)
